@@ -39,6 +39,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
       ? onRejected
       : (reason) => {
           throw reason;
+          // return reason;
         };
   let self = this;
   //PromiseA+ 2.2.7
@@ -146,5 +147,5 @@ Promise.defer = Promise.deferred = function () {
   return dfd;
 };
 
-module.exports = Promise;
-// export default Promise;
+// module.exports = Promise;
+export default Promise;

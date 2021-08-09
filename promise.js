@@ -19,7 +19,10 @@ function Promise(executor) {
       this.value = value;
       // 异步执行 onFulfilled
       this.onFulfilledCallbackArr.forEach((fn) => {
-        fn();
+        // setTimeout(() => {
+        fn(this.value);
+        // });
+        // fn(this.value);
       });
     }
   };
@@ -48,25 +51,40 @@ function Promise(executor) {
 Promise.prototype.then = function (onFulfilled, onRejected) {
   return new Promise((resolve, reject) => {
     if (this.state === PEDNING) {
-      this.onFulfilledCallbackArr.push(() => {
-        onFulfilled(this.value);
-      });
+      // this.onFulfilledCallbackArr.push(() => {
+      //   onFulfilled(this.value);
+      // });
+      this.onFulfilledCallbackArr.push(onFulfilled);
+      // this.onFulfilledCallbackArr.push(() => {
+      //   setTimeout(() => {
+      //     onFulfilled(this.value);
+      //   });
+      // });
+
+      // this.onRejectededCallbackArr.push(() => {
+      //   onRejected(this.reason);
+      // });
       this.onRejectededCallbackArr.push(() => {
-        onRejected(this.reason);
+        setTimeout(() => {
+          onRejected(this.reason);
+        });
       });
     }
     if (this.state === FULFILLED) {
       // 同步执行 onFulfilled
-      onFulfilled(this.value);
+      setTimeout(() => {
+        onFulfilled(this.value);
+      });
     }
     if (this.state === REJECTED) {
       onRejected(this.reason);
     }
-
-
-    
   });
 };
 
 export default Promise;
 // module.exports = Promise;
+
+// 需要注意 then 方法第一和第二个回调函数的返回值
+// 因为第一第二个回调函数的返回值决定 then 方法返回的promise的状态
+
