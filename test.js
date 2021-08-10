@@ -46,3 +46,56 @@ var promise2 = promise1.then(
 //     console.log("reason2", reason2);
 //   }
 // );
+
+function getURL(url) {
+  return (promise = new Promise(function (resolve, reject) {
+    var req = new XMLHttpRequest();
+    req.open("GET", url, true);
+    req.onload = function () {
+      if (req.status === 200) {
+        resolve(req.responseText);
+      } else {
+        reject(new Error(req.statusText));
+      }
+    };
+    req.onerror = function () {
+      reject(new Error(req.statusText));
+    };
+    req.send();
+  }));
+}
+// 运行示例
+getURL("http://httpbin.org/get").then(
+  function onFulfilled(value) {
+    console.log(value);
+    return getURL(`http://xxxxx/get${value}`);
+  },
+  function onRejected(error) {
+    console.log(error);
+  }
+);
+
+function getURL(url, resolve, reject) {
+  var req = new XMLHttpRequest();
+  req.open("GET", url, true);
+  req.onload = function () {
+    if (req.status === 200) {
+      resolve(req.responseText);
+    } else {
+      reject(new Error(req.statusText));
+    }
+  };
+  req.onerror = function () {
+    reject(new Error(req.statusText));
+  };
+  req.send();
+}
+getURL(
+  "http://httpbin.org/get",
+  (value) => {
+    console.log("请求成功：", value);
+  },
+  (reason) => {
+    console.log("请求失败：", reason);
+  }
+);
