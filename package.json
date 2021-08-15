@@ -4,10 +4,14 @@
   "description": "",
   "main": "promise.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "testPromise": "promises-aplus-tests promiseInternet"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module"
+  "type": "commonjs",
+  "devDependencies": {
+    "promises-aplus-tests": "^2.1.2"
+  }
 }
