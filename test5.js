@@ -88,12 +88,26 @@
 //   )
 // );
 
-import Promise from "./promiseInternet.js";
+// import Promise from "./promiseInternet.js";
+// new Promise((resolve, reject) => {
+//   //   resolve("resolve");
+//   reject("reject");
+// })
+//   .then()
+//   .then(
+//     (value) => {
+//       console.log("value: ", value);
+//     },
+//     (reason) => {
+//       console.log("reason: ", reason);
+//     }
+//   );
+
+// import Promise from "./promiseInternet.js";
 new Promise((resolve, reject) => {
-  //   resolve("resolve");
-  reject("reject");
+  resolve("resolve");
+  // reject("reject");
 })
-  .then()
   .then(
     (value) => {
       console.log("value: ", value);

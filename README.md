@@ -1,4 +1,5 @@
 # promise-source-code
+
 根据promises/A+规范手写promise源码
 
 参考文档：https://promisesaplus.com/
@@ -11,3 +12,4 @@ https://github.com/YvetteLau/Blog/issues/2
 
 
 1. promise 和 thenable的区别
+dd

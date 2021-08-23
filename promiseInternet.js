@@ -46,8 +46,8 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
   let promise2 = new Promise((resolve, reject) => {
     if (self.status === FULFILLED) {
       //PromiseA+ 2.2.2
-      //PromiseA+ 2.2.4 --- setTimeout
-      setTimeout(() => {
+      //PromiseA+ 2.2.4 --- queueMicrotask
+      queueMicrotask(() => {
         try {
           //PromiseA+ 2.2.7.1
           let x = onFulfilled(self.value);
@@ -59,7 +59,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
       });
     } else if (self.status === REJECTED) {
       //PromiseA+ 2.2.3
-      setTimeout(() => {
+      queueMicrotask(() => {
         try {
           let x = onRejected(self.reason);
           resolvePromise(promise2, x, resolve, reject);
@@ -69,7 +69,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
       });
     } else if (self.status === PENDING) {
       self.onFulfilled.push(() => {
-        setTimeout(() => {
+        queueMicrotask(() => {
           try {
             let x = onFulfilled(self.value);
             resolvePromise(promise2, x, resolve, reject);
@@ -79,7 +79,7 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
         });
       });
       self.onRejected.push(() => {
-        setTimeout(() => {
+        queueMicrotask(() => {
           try {
             let x = onRejected(self.reason);
             resolvePromise(promise2, x, resolve, reject);
