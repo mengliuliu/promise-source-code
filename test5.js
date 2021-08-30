@@ -104,15 +104,73 @@
 //   );
 
 // import Promise from "./promiseInternet.js";
-new Promise((resolve, reject) => {
-  resolve("resolve");
-  // reject("reject");
-})
-  .then(
-    (value) => {
-      console.log("value: ", value);
-    },
-    (reason) => {
-      console.log("reason: ", reason);
-    }
-  );
+// new Promise((resolve, reject) => {
+//   resolve(
+//     new Promise((resolve, reject) => {
+//       // resolve("resolve");
+//       // reject("reject");
+//       reject(
+//         new Promise((resolve, reject) => {
+//           resolve("resolve");
+//           // reject("reject");
+//         })
+//       );
+//     })
+//   );
+//   // reject("reject");
+// }).then(
+//   (value) => {
+//     console.log("value: ", value);
+//   },
+//   (reason) => {
+//     console.log("reason: ", reason);
+//   }
+// );
+
+// function judgeResolveParam(param) {
+//   let flag = 1
+//   if (typeof param === "object" || typeof param === "function") {
+//     try {
+//       let then = param.then;
+//       if (typeof then === "function") {
+//         then.call(
+//           param,
+//           (v) => {
+//             console.log('then1')
+//             judgeResolveParam(v);
+//           },
+//           (r) => {
+//             console.log('then2')
+//             // return {
+//             //   status: "rejected",
+//             //   val: param,
+//             // };
+//           }
+//         );
+//       } else {
+//         // return {
+//         //   status: "fulfilled",
+//         //   val: param,
+//         // };
+//       }
+//     } catch (e) {
+//       // return {
+//       //   status: "rejected",
+//       //   val: param,
+//       // };
+//     }
+//   } else {
+//     // return {
+//     //   status: "fulfilled",
+//     //   val: param,
+//     // };
+//   }
+// }
+// console.log(
+//   judgeResolveParam(
+//     new Promise((resolve, reject) => {
+//       // resolve("1");
+//       reject("r");
+//     })
+//   )
+// );
