@@ -144,5 +144,5 @@ Promise.defer = Promise.deferred = function () {
   return dfd;
 };
 
-module.exports = Promise;
-// export default Promise;
+// module.exports = Promise;
+export default Promise;
