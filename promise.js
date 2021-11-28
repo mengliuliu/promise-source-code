@@ -1,90 +1,150 @@
-const PEDNING = "PENGING";
-const FULFILLED = "FULFILLED";
-const REJECTED = "REJECTED";
+const Pending = "pending";
+const Fulfilled = "fulfilled";
+const Rejected = "rejected";
 
-function Promise(executor) {
-  this.state = PEDNING;
+function MPromise(executor) {
+  this.state = Pending;
   this.value = "";
   this.reason = "";
-  this.onFulfilledCallbackArr = [];
-  this.onRejectededCallbackArr = [];
-
-  // 调用 resolve 函数改变内部状态和内部执行值
+  this.fulfilledArr = [];
+  this.rejectedArr = [];
   const resolve = (value) => {
-    // resolve函数的作用是
-    // 1. 把参数传递给 then 的第一个回调函数（通过把参数赋值给实例对象的属性）
-    // 2. 执行 then 的第一个回调函数（通过状态改变）
-    if (this.state === PEDNING) {
-      this.state = FULFILLED;
+    if (this.state === Pending) {
+      this.state = Fulfilled;
       this.value = value;
-      // 异步执行 onFulfilled
-      this.onFulfilledCallbackArr.forEach((fn) => {
-        // setTimeout(() => {
-        fn(this.value);
-        // });
-        // fn(this.value);
+      this.fulfilledArr.forEach((arr) => {
+        arr();
       });
     }
   };
   const reject = (reason) => {
-    if (this.state === PEDNING) {
-      this.state = REJECTED;
+    if (this.state === Pending) {
+      this.state = Rejected;
       this.reason = reason;
-      this.onRejectededCallbackArr.forEach((fn) => {
-        fn();
+      this.rejectedArr.forEach((arr) => {
+        arr();
       });
     }
   };
-
-  executor(resolve, reject);
+  try {
+    executor(resolve, reject);
+  } catch (error) {
+    reject(error);
+  }
 }
-// 调用resolve方法，promise内部的状态就一定变成 fulfilled 么
 
-// 正向思维
-// Promise构造函数中的回调函数 决定 执行then(first)方法的第一个还是第二个回调函数
-// then(first)方法中被执行的回调函数的返回值 决定 then(first)方法返回的promise的状态变化
-// then(first)方法返回的promise的状态 决定 执行then(other)方法的第一个还是第二个回调函数
+MPromise.prototype.then = function (onFulfilled, onRejected) {
+  onFulfilled =
+    typeof onFulfilled === "function" ? onFulfilled : (value) => value;
 
-// 逆向思维
-// then(first)方法执行第一个或者第二个回调函数 是由 Promise构造函数中的回调函数决定的
-// then(other)方法执行第一个或者第二个回调函数 是由 上一个then方法中执行的回调函数的返回值决定的
-Promise.prototype.then = function (onFulfilled, onRejected) {
-  return new Promise((resolve, reject) => {
-    if (this.state === PEDNING) {
-      // this.onFulfilledCallbackArr.push(() => {
-      //   onFulfilled(this.value);
-      // });
-      this.onFulfilledCallbackArr.push(onFulfilled);
-      // this.onFulfilledCallbackArr.push(() => {
-      //   setTimeout(() => {
-      //     onFulfilled(this.value);
-      //   });
-      // });
+  onRejected =
+    typeof onRejected === "function"
+      ? onRejected
+      : (reason) => {
+          throw reason;
+        };
 
-      // this.onRejectededCallbackArr.push(() => {
-      //   onRejected(this.reason);
-      // });
-      this.onRejectededCallbackArr.push(() => {
-        setTimeout(() => {
-          onRejected(this.reason);
+  let p2 = new MPromise((resolve, reject) => {
+    try {
+      if (this.state === Fulfilled) {
+        queueMicrotask(() => {
+          try {
+            let x = onFulfilled(this.value);
+            resolvePromise(p2, x, resolve, reject);
+          } catch (e) {
+            reject(e);
+          }
         });
-      });
-    }
-    if (this.state === FULFILLED) {
-      // 同步执行 onFulfilled
-      setTimeout(() => {
-        onFulfilled(this.value);
-      });
-    }
-    if (this.state === REJECTED) {
-      onRejected(this.reason);
+      }
+      if (this.state === Rejected) {
+        queueMicrotask(() => {
+          try {
+            let x = onRejected(this.reason);
+            resolvePromise(p2, x, resolve, reject);
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+      if (this.state === Pending) {
+        this.fulfilledArr.push(() => {
+          queueMicrotask(() => {
+            try {
+              let x = onFulfilled(this.value);
+              resolvePromise(p2, x, resolve, reject);
+            } catch (e) {
+              reject(e);
+            }
+          });
+        });
+
+        this.rejectedArr.push(() => {
+          queueMicrotask(() => {
+            try {
+              let x = onRejected(this.reason);
+              resolvePromise(p2, x, resolve, reject);
+            } catch (e) {
+              reject(e);
+            }
+          });
+        });
+      }
+    } catch (error) {
+      reject(error);
     }
   });
+  return p2;
 };
 
-export default Promise;
-// module.exports = Promise;
+function resolvePromise(promise, x, resolve, reject) {
+  if (promise === x) {
+    reject(new TypeError("Chaining cycle"));
+  }
+  if ((x !== null && typeof x === "object") || typeof x === "function") {
+    let called = false;
+    try {
+      let then = x.then;
+      if (typeof then === "function") {
+        then.call(
+          x,
+          (y) => {
+            if (called) return;
+            called = true;
+            resolvePromise(promise, y, resolve, reject);
+          },
+          (r) => {
+            if (called) return;
+            called = true;
+            reject(r);
+          }
+        );
+      } else {
+        resolve(x);
+      }
+    } catch (error) {
+      if (called) return;
+      called = true;
+      reject(error);
+    }
+  } else {
+    resolve(x);
+  }
+}
 
-// 需要注意 then 方法第一和第二个回调函数的返回值
-// 因为第一第二个回调函数的返回值决定 then 方法返回的promise的状态
+MPromise.defer = MPromise.deferred = function () {
+  let dfd = {};
+  dfd.promise = new MPromise((resolve, reject) => {
+    dfd.resolve = resolve;
+    dfd.reject = reject;
+  });
+  return dfd;
+};
 
+module.exports = MPromise;
+
+// console.log(
+//   new MPromise((resolve, reject) => {
+//     // resolve("success");
+//     console.log(l);
+//   })
+// );

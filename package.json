@@ -10,7 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
+  "type": "commonjs",
   "devDependencies": {
     "promises-aplus-tests": "^2.1.2"
   }
