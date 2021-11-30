@@ -2,25 +2,26 @@ const PENDING = "pending";
 const FULFILLED = "fulfilled";
 const REJECTED = "rejected";
 function Promise(executor) {
-  this.status = PENDING;
-  this.onFulfilled = []; //成功的回调
-  this.onRejected = []; //失败的回调
+  let self = this;
+  self.status = PENDING;
+  self.onFulfilled = []; //成功的回调
+  self.onRejected = []; //失败的回调
   //PromiseA+ 2.1
-  const resolve = (value) => {
-    if (this.status === PENDING) {
-      this.status = FULFILLED;
-      this.value = value;
-      this.onFulfilled.forEach((fn) => fn()); //PromiseA+ 2.2.6.1
+  function resolve(value) {
+    if (self.status === PENDING) {
+      self.status = FULFILLED;
+      self.value = value;
+      self.onFulfilled.forEach((fn) => fn()); //PromiseA+ 2.2.6.1
     }
-  };
+  }
 
-  const reject = (reason) => {
-    if (this.status === PENDING) {
-      this.status = REJECTED;
-      this.reason = reason;
-      this.onRejected.forEach((fn) => fn()); //PromiseA+ 2.2.6.2
+  function reject(reason) {
+    if (self.status === PENDING) {
+      self.status = REJECTED;
+      self.reason = reason;
+      self.onRejected.forEach((fn) => fn()); //PromiseA+ 2.2.6.2
     }
-  };
+  }
 
   try {
     executor(resolve, reject);
@@ -38,48 +39,48 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
       ? onRejected
       : (reason) => {
           throw reason;
-          // return reason;
         };
+  let self = this;
   //PromiseA+ 2.2.7
   let promise2 = new Promise((resolve, reject) => {
-    if (this.status === FULFILLED) {
+    if (self.status === FULFILLED) {
       //PromiseA+ 2.2.2
-      //PromiseA+ 2.2.4 --- queueMicrotask
-      queueMicrotask(() => {
+      //PromiseA+ 2.2.4 --- setTimeout
+      setTimeout(() => {
         try {
           //PromiseA+ 2.2.7.1
-          let x = onFulfilled(this.value);
+          let x = onFulfilled(self.value);
           resolvePromise(promise2, x, resolve, reject);
         } catch (e) {
           //PromiseA+ 2.2.7.2
           reject(e);
         }
       });
-    } else if (this.status === REJECTED) {
+    } else if (self.status === REJECTED) {
       //PromiseA+ 2.2.3
-      queueMicrotask(() => {
+      setTimeout(() => {
         try {
-          let x = onRejected(this.reason);
+          let x = onRejected(self.reason);
           resolvePromise(promise2, x, resolve, reject);
         } catch (e) {
           reject(e);
         }
       });
-    } else if (this.status === PENDING) {
-      this.onFulfilled.push(() => {
-        queueMicrotask(() => {
+    } else if (self.status === PENDING) {
+      self.onFulfilled.push(() => {
+        setTimeout(() => {
           try {
-            let x = onFulfilled(this.value);
+            let x = onFulfilled(self.value);
             resolvePromise(promise2, x, resolve, reject);
           } catch (e) {
             reject(e);
           }
         });
       });
-      this.onRejected.push(() => {
-        queueMicrotask(() => {
+      self.onRejected.push(() => {
+        setTimeout(() => {
           try {
-            let x = onRejected(this.reason);
+            let x = onRejected(self.reason);
             resolvePromise(promise2, x, resolve, reject);
           } catch (e) {
             reject(e);
@@ -92,13 +93,12 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 };
 
 function resolvePromise(promise2, x, resolve, reject) {
+  let self = this;
   //PromiseA+ 2.3.1
   if (promise2 === x) {
     reject(new TypeError("Chaining cycle"));
   }
-  if (x instanceof Promise) {
-    
-  } else if ((x && typeof x === "object") || typeof x === "function") {
+  if ((x && typeof x === "object") || typeof x === "function") {
     let used; //PromiseA+2.3.3.3.3 只能调用一次
     try {
       let then = x.then;
@@ -147,4 +147,3 @@ Promise.defer = Promise.deferred = function () {
 };
 
 module.exports = Promise;
-// export default Promise;

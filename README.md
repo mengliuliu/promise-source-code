@@ -1,3 +1,5 @@
+# 基于 Promises/A+规范手写 Promise
+
 ## 一、什么是 promise ？
 
 Promise 对象用于表示一个异步操作的最终完成 (或失败)及其结果值。
@@ -105,6 +107,10 @@ function Promise(executor) {
   this.onFulfilled = []; //成功的回调
   this.onRejected = []; //失败的回调
   const resolve = (value) => {
+    // 如果 resolve 的是 promise，则 new 出来的 promise 的状态由 resolve 参数中的 promise 决定
+    if (value instanceof Promise) {
+      return value.then(resolve, reject);
+    }
     if (this.status === PENDING) {
       this.status = FULFILLED;
       this.value = value;
@@ -247,17 +253,19 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
 - 2.3.2.1 If x is pending, promise must remain pending until x is fulfilled or rejected.
 - 2.3.2.2 If/when x is fulfilled, fulfill promise with the same value.
 - 2.3.2.3 If/when x is rejected, reject promise with the same reason.
-  ### 2.3.3 Otherwise, if x is an object or function,
-  - 2.3.3.1 Let then be x.then. [3.5]
-  - 2.3.3.2 If retrieving the property x.then results in a thrown exception e, reject promise with e as the reason.
-  - 2.3.3.3 If then is a function, call it with x as this, first argument resolvePromise, and second argument rejectPromise, where:
-    - 2.3.3.3.1 If/when resolvePromise is called with a value y, run [[Resolve]](promise, y).
-    - 2.3.3.3.2 If/when rejectPromise is called with a reason r, reject promise with r.
-    - 2.3.3.3.3 If both resolvePromise and rejectPromise are called, or multiple calls to the same argument are made, the first call takes precedence, and any further calls are ignored.
-    - 2.3.3.3.4 If calling then throws an exception e,
-      - 2.3.3.3.4.1 If resolvePromise or rejectPromise have been called, ignore it.
-      - 2.3.3.3.4.2 Otherwise, reject promise with e as the reason.
-  - 2.3.3.4 If then is not a function, fulfill promise with x.
+
+### 2.3.3 Otherwise, if x is an object or function,
+
+- 2.3.3.1 Let then be x.then. [3.5]
+- 2.3.3.2 If retrieving the property x.then results in a thrown exception e, reject promise with e as the reason.
+- 2.3.3.3 If then is a function, call it with x as this, first argument resolvePromise, and second argument rejectPromise, where:
+  - 2.3.3.3.1 If/when resolvePromise is called with a value y, run [[Resolve]](promise, y).
+  - 2.3.3.3.2 If/when rejectPromise is called with a reason r, reject promise with r.
+  - 2.3.3.3.3 If both resolvePromise and rejectPromise are called, or multiple calls to the same argument are made, the first call takes precedence, and any further calls are ignored.
+  - 2.3.3.3.4 If calling then throws an exception e,
+    - 2.3.3.3.4.1 If resolvePromise or rejectPromise have been called, ignore it.
+    - 2.3.3.3.4.2 Otherwise, reject promise with e as the reason.
+- 2.3.3.4 If then is not a function, fulfill promise with x.
 
 ### 2.3.4 If x is not an object or function, fulfill promise with x.
 
@@ -306,6 +314,25 @@ function resolvePromise(promise2, x, resolve, reject) {
 - Promise 构造函数中回调函数的函数参数(resolve, reject)和函数参数(resolve, reject)的参数 决定 执行 then(first)方法的第一个还是第二个回调函数
 - then(first)方法中被执行的回调函数的返回值 决定 then(first)方法返回的 promise 的状态
 - then(first)方法返回的 promise 的状态 决定 执行 then(other)方法的第一个还是第二个回调函数
+
+### 测试
+
+- npm 有一个 promises-aplus-tests 插件 npm i promises-aplus-tests -g 可以全局安装 mac 用户最前面加上 sudo
+
+- 命令行 promises-aplus-tests [js 文件名] 即可验证
+
+```javascript
+// 目前是通过他测试 他会测试一个对象
+Promise.defer = Promise.deferred = function () {
+  let dfd = {};
+  dfd.promise = new Promise((resolve, reject) => {
+    dfd.resolve = resolve;
+    dfd.reject = reject;
+  });
+  return dfd;
+};
+module.exports = Promise;
+```
 
 ## 五、补充
 
@@ -410,7 +437,7 @@ var p = Promise.all([p1, p2, p3]);
 
 ```javascript
 Promise.all = function (promises) {
-  promises = Array.from(promises); //将可迭代对象转换为数组
+  promises = Array.from(promises); //将可迭代对象或伪数组转换为数组
   return new Promise((resolve, reject) => {
     let index = 0;
     let result = [];
@@ -452,7 +479,7 @@ var p = Promise.race([p1, p2, p3]);
 
 ```javascript
 Promise.race = function (promises) {
-  promises = Array.from(promises); //将可迭代对象转换为数组
+  promises = Array.from(promises); //将可迭代对象或伪数组转换为数组
   return new Promise((resolve, reject) => {
     if (promises.length === 0) {
       return;
@@ -482,12 +509,14 @@ Promise.race = function (promises) {
    reject 函数的参数是一个 promise 会怎么处理
 3. promise 和 thenable 的区别
 4. 调用 Promise.resolve 方法返回的 promise 的状态一定是 fulfilled 么
+5. 调用 Promise.reject 方法返回的 promise 的状态一定是 rejected 么
 
 ```javascript
+// then 的参数不是函数
 let p1 = new Promise((resolve, reject) => {
   resolve("1");
 });
-console.log(p1.then(2, 4)); // Promise { <pending> }
+console.log(p1.then(2, 4));
 p1.then(2, 4).then(
   (value) => {
     console.log("value", value);
@@ -495,10 +524,36 @@ p1.then(2, 4).then(
   (reason) => {
     console.log("reason", reason);
   }
-); // value 1
+);
 ```
 
-## 七、参考文档
+```javascript
+// resolve 的参数是一个 promise
+console.log(
+  new Promise((resolve, reject) => {
+    resolve(
+      new Promise((resolve, reject) => {
+        resolve("success");
+      })
+    );
+  })
+);
+```
+
+```javascript
+// Promise.resolve 的参数是一个 promise
+console.log(
+  Promise.resolve(
+    new Promise((resolve, reject) => {
+      reject("err");
+    })
+  )
+);
+```
+
+## 七、参考资料
+
+《ES6 标准入门（第 3 版）》
 
 https://promisesaplus.com/
 
@@ -507,3 +562,5 @@ https://www.ituring.com.cn/article/66566
 https://www.cnblogs.com/sugar-tomato/p/11353546.html
 
 https://github.com/YvetteLau/Blog/issues/2
+
+...

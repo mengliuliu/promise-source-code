@@ -9,6 +9,9 @@ function MPromise(executor) {
   this.fulfilledArr = [];
   this.rejectedArr = [];
   const resolve = (value) => {
+    if (value instanceof MPromise) {
+      return value.then(resolve, reject);
+    }
     if (this.state === Pending) {
       this.state = Fulfilled;
       this.value = value;
@@ -144,7 +147,21 @@ module.exports = MPromise;
 
 // console.log(
 //   new MPromise((resolve, reject) => {
+//     resolve(
+//       new MPromise((resolve, reject) => {
+//         resolve("success");
+//       })
+//     );
+//   })
+// );
+// console.log(
+//   new Promise((resolve, reject) => {
 //     // resolve("success");
-//     console.log(l);
+//     resolve(
+//       new Promise((resolve, reject) => {
+//         resolve("success");
+//       })
+//     );
+//     // console.log(l);
 //   })
 // );

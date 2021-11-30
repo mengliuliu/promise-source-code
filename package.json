@@ -5,7 +5,7 @@
   "main": "promise.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "testPromise": "promises-aplus-tests promiseInternet"
+    "testPromise": "promises-aplus-tests promise"
   },
   "keywords": [],
   "author": "",
@@ -13,5 +13,9 @@
   "type": "commonjs",
   "devDependencies": {
     "promises-aplus-tests": "^2.1.2"
+  },
+  "dependencies": {
+    "-": "0.0.1",
+    "g": "^2.0.1"
   }
 }
