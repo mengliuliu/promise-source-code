@@ -1,31 +1,31 @@
-const Pending = "pending";
-const Fulfilled = "fulfilled";
-const Rejected = "rejected";
+const PENDING = "pending";
+const FULFILLED = "fulfilled";
+const REJECTED = "rejected";
 
 function MPromise(executor) {
-  this.state = Pending;
+  this.state = PENDING;
   this.value = "";
   this.reason = "";
-  this.fulfilledArr = [];
-  this.rejectedArr = [];
+  this.onFulfilled = [];
+  this.onRejected = [];
   const resolve = (value) => {
     if (value instanceof MPromise) {
-      return value.then(resolve, reject);
+      value.then(resolve, reject);
     }
-    if (this.state === Pending) {
-      this.state = Fulfilled;
+    if (this.state === PENDING) {
+      this.state = FULFILLED;
       this.value = value;
-      this.fulfilledArr.forEach((arr) => {
-        arr();
+      this.onFulfilled.forEach((fn) => {
+        fn();
       });
     }
   };
   const reject = (reason) => {
-    if (this.state === Pending) {
-      this.state = Rejected;
+    if (this.state === PENDING) {
+      this.state = REJECTED;
       this.reason = reason;
-      this.rejectedArr.forEach((arr) => {
-        arr();
+      this.onRejected.forEach((fn) => {
+        fn();
       });
     }
   };
@@ -38,72 +38,80 @@ function MPromise(executor) {
 
 MPromise.prototype.then = function (onFulfilled, onRejected) {
   onFulfilled =
-    typeof onFulfilled === "function" ? onFulfilled : (value) => value;
-
+    typeof onFulfilled === "function"
+      ? onFulfilled
+      : (value) => {
+          return value;
+        };
   onRejected =
     typeof onRejected === "function"
       ? onRejected
       : (reason) => {
           throw reason;
+          //   return value;
         };
 
-  let p2 = new MPromise((resolve, reject) => {
-    try {
-      if (this.state === Fulfilled) {
+  let promise2 = new MPromise((resolve, reject) => {
+    if (this.state === FULFILLED) {
+      queueMicrotask(() => {
+        try {
+          let x = onFulfilled(this.value);
+          resolvePromise(promise2, x, resolve, reject);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+    if (this.state === REJECTED) {
+      queueMicrotask(() => {
+        try {
+          let x = onRejected(this.reason);
+          resolvePromise(promise2, x, resolve, reject);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+    if (this.state === PENDING) {
+      this.onFulfilled.push(() => {
         queueMicrotask(() => {
           try {
             let x = onFulfilled(this.value);
-            resolvePromise(p2, x, resolve, reject);
-          } catch (e) {
-            reject(e);
+            resolvePromise(promise2, x, resolve, reject);
+          } catch (error) {
+            reject(error);
           }
         });
-      }
-      if (this.state === Rejected) {
+      });
+      this.onRejected.push(() => {
         queueMicrotask(() => {
           try {
             let x = onRejected(this.reason);
-            resolvePromise(p2, x, resolve, reject);
-          } catch (e) {
-            reject(e);
+            resolvePromise(promise2, x, resolve, reject);
+          } catch (error) {
+            reject(error);
           }
         });
-      }
-      if (this.state === Pending) {
-        this.fulfilledArr.push(() => {
-          queueMicrotask(() => {
-            try {
-              let x = onFulfilled(this.value);
-              resolvePromise(p2, x, resolve, reject);
-            } catch (e) {
-              reject(e);
-            }
-          });
-        });
-
-        this.rejectedArr.push(() => {
-          queueMicrotask(() => {
-            try {
-              let x = onRejected(this.reason);
-              resolvePromise(p2, x, resolve, reject);
-            } catch (e) {
-              reject(e);
-            }
-          });
-        });
-      }
-    } catch (error) {
-      reject(error);
+      });
     }
   });
-  return p2;
+  return promise2;
 };
 
 function resolvePromise(promise, x, resolve, reject) {
   if (promise === x) {
-    reject(new TypeError("Chaining cycle"));
+    reject(new TypeError("err"));
   }
-  if ((x !== null && typeof x === "object") || typeof x === "function") {
+  if (x instanceof MPromise) {
+    x.then(
+      (y) => {
+        resolvePromise(promise, y, resolve, reject);
+      },
+      (error) => {
+        reject(error);
+      }
+    );
+  } else if ((x !== null && typeof x === "object") || typeof x === "function") {
     let called = false;
     try {
       let then = x.then;
@@ -144,24 +152,3 @@ MPromise.defer = MPromise.deferred = function () {
 };
 
 module.exports = MPromise;
-
-// console.log(
-//   new MPromise((resolve, reject) => {
-//     resolve(
-//       new MPromise((resolve, reject) => {
-//         resolve("success");
-//       })
-//     );
-//   })
-// );
-// console.log(
-//   new Promise((resolve, reject) => {
-//     // resolve("success");
-//     resolve(
-//       new Promise((resolve, reject) => {
-//         resolve("success");
-//       })
-//     );
-//     // console.log(l);
-//   })
-// );

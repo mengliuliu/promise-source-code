@@ -197,7 +197,6 @@ Promise.prototype.then = function (onFulfilled, onRejected) {
       // queueMicrotask实现微任务
       queueMicrotask(() => {
         // try、catch捕获执行onFulfilled函数执行过程的错误
-        //
         try {
           let x = onFulfilled(this.value);
           //  then方法返回的promise对象的状态由回调函数的返回值决定
@@ -275,7 +274,18 @@ function resolvePromise(promise2, x, resolve, reject) {
     // 防止进入死循环
     reject(new TypeError("Chaining cycle"));
   }
-  if ((x && typeof x === "object") || typeof x === "function") {
+
+  if (x instanceof MPromise) {
+    // 可忽略，因为 promise 就是 thenable
+    x.then(
+      (y) => {
+        resolvePromise(promise, y, resolve, reject);
+      },
+      (error) => {
+        reject(error);
+      }
+    );
+  } else if ((x && typeof x === "object") || typeof x === "function") {
     let used;
     try {
       let then = x.then;
@@ -529,15 +539,20 @@ p1.then(2, 4).then(
 
 ```javascript
 // resolve 的参数是一个 promise
-console.log(
-  new Promise((resolve, reject) => {
-    resolve(
-      new Promise((resolve, reject) => {
-        resolve("success");
-      })
-    );
-  })
-);
+new Promise((resolve, reject) => {
+  resolve(
+    new Promise((resolve, reject) => {
+      resolve("success");
+    })
+  );
+});
+new Promise((resolve, reject) => {
+  resolve(
+    new Promise((resolve, reject) => {
+      reject("fail");
+    })
+  );
+});
 ```
 
 ```javascript
